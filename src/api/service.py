@@ -1,9 +1,24 @@
+from sqlalchemy import select
 
+from src.models.spimex_trading_results import SpimexTradingResult
+from src.parser.spimex_trading_results import URLManager
+from src.api.dependencies import SessionDep
+
+
+async def parse_spimex(parser: URLManager()):
+    await parser.get_data_from_query()
+    await parser.download_tables()
+    parser.convert_to_df()
+    parser.validate_tables()
+    parser.add_columns()
+    await parser.load_to_db()
 
 
 # список дат последних торговых дней (фильтрация по кол-ву последних торговых дней).
-async def get_last_trading_dates():
-    ...
+async def get_last_trading_dates(session: SessionDep):
+    stmt = await session.execute(select(SpimexTradingResult.date).order_by(SpimexTradingResult.date.desc()).limit(10))
+    result = stmt.scalars().all()
+    return result
 
 # список торгов за заданный период (фильтрация по oil_id, delivery_type_id,
 # delivery_basis_id, start_date, end_date).
