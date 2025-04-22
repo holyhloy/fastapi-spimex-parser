@@ -12,7 +12,7 @@ from src.parser.spimex_trading_results import URLManager
 @asynccontextmanager
 async def on_startup(application: FastAPI):
     await create_db()
-    if not os.path.isdir('src/parser/tables/'):
+    if os.path.isdir('src/parser/tables/'): # wrong
         await parse_spimex(URLManager())
     yield
 

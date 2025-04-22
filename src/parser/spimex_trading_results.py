@@ -37,7 +37,7 @@ class URLManager:
                 async with session.get(self.url+f'?page=page-{self.page_number}') as response:
                     data = await response.text()
                     hrefs = re.findall(self.href_pattern, data)
-                    if hrefs:
+                    if f'{hrefs[0][-22:]}.xls' not in os.listdir('src/parser/tables/'):
                         for href in hrefs:
                             href = f'https://spimex.com/{href}'
                             self.tables_hrefs.append(href)
