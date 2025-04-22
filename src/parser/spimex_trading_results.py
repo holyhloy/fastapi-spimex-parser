@@ -11,12 +11,12 @@ from sqlalchemy import select
 
 import pandas as pd
 
-from src.database import create_db, Session
+from src.database import Session
 from src.models.spimex_trading_results import SpimexTradingResult
 
 
-if not os.path.isdir('./parser/tables/'):
-    os.makedirs('./parser/tables/', exist_ok=True)
+if not os.path.isdir('src/parser/tables/'):
+    os.makedirs('src/parser/tables/', exist_ok=True)
 
 class URLManager:
 
@@ -25,7 +25,7 @@ class URLManager:
         self.page_number = 0
         self.href_pattern = re.compile(r'/upload/reports/oil_xls/oil_xls_202[3-9]\d*')
         self.tables_hrefs = []
-        self.existing_files = os.listdir('./parser/tables/')
+        self.existing_files = os.listdir('src/parser/tables/')
         self.dataframes = {}
         self.instances = []
 
@@ -49,7 +49,7 @@ class URLManager:
         async with aiohttp.ClientSession() as session:
             tasks = []
             for href in self.tables_hrefs:
-                file_path = f'./parser/tables/{href[-22:]}.xls'
+                file_path = f'src/parser/tables/{href[-22:]}.xls'
                 if file_path not in self.existing_files:
                     tasks.append(self.download_table_file(session, href, file_path))
             await asyncio.gather(*tasks)
@@ -63,8 +63,8 @@ class URLManager:
 
     def convert_to_df(self) -> None:
         print('Converting tables to dataframes...')
-        for table_file in os.listdir('./parser/tables/'):
-            file_path = f'./parser/tables/{table_file}'
+        for table_file in os.listdir('src/parser/tables/'):
+            file_path = f'src/parser/tables/{table_file}'
             df = pd.read_excel(file_path, usecols='B:F,O', engine='xlrd')
             self.dataframes[file_path] = df
 

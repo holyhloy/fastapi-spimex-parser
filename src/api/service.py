@@ -16,7 +16,7 @@ async def parse_spimex(parser: URLManager()):
 
 # список дат последних торговых дней (фильтрация по кол-ву последних торговых дней).
 async def get_last_trading_dates(session: SessionDep):
-    stmt = await session.execute(select(SpimexTradingResult.date).order_by(SpimexTradingResult.date.desc()).limit(10))
+    stmt = await session.execute(select(SpimexTradingResult.date).order_by(SpimexTradingResult.date).limit(10))
     result = stmt.scalars().all()
     return result
 
