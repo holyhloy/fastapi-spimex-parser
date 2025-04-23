@@ -1,7 +1,8 @@
 import datetime
 from typing import Optional
 
-from sqlalchemy import select, desc, and_
+import sqlalchemy
+from sqlalchemy import select, desc, and_, func
 
 from src.models.spimex_trading_results import SpimexTradingResult
 from src.parser.spimex_trading_results import URLManager
@@ -40,16 +41,16 @@ async def get_dynamics(session: SessionDep,
                        ):
     if start_date >= end_date:
         raise ValueError('Start date must be less than end date.')
+
     conditions = [SpimexTradingResult.date.between(start_date, end_date)]
 
-    if oil_id:
-        conditions.append(SpimexTradingResult.oil_id == oil_id)
+    filters = {
+        SpimexTradingResult.oil_id: oil_id,
+        SpimexTradingResult.delivery_type_id: delivery_type_id,
+        SpimexTradingResult.delivery_basis_id: delivery_basis_id
+    }
 
-    if delivery_type_id:
-        conditions.append(SpimexTradingResult.delivery_type_id == delivery_type_id)
-
-    if delivery_basis_id:
-        conditions.append(SpimexTradingResult.delivery_basis_id == delivery_basis_id)
+    conditions += [column == value for column, value in filters.items() if value is not None]
 
     stmt = await session.execute(select(SpimexTradingResult).where(and_(*conditions)))
     results = stmt.scalars().all()
@@ -61,4 +62,17 @@ async def get_trading_results(session: SessionDep,
                               delivery_type_id: Optional[str | None] = None,
                               delivery_basis_id: Optional[str | None] = None
                               ):
-    ...
+    newest_date_subquery = select(func.max(SpimexTradingResult.date)).subquery()
+    conditions = [SpimexTradingResult.date == newest_date_subquery]
+
+    filters = {
+        SpimexTradingResult.oil_id: oil_id,
+        SpimexTradingResult.delivery_type_id: delivery_type_id,
+        SpimexTradingResult.delivery_basis_id: delivery_basis_id
+    }
+
+    conditions += [column == value for column, value in filters.items() if value is not None]
+
+    stmt = await session.execute(select(SpimexTradingResult).where(and_(*conditions)))
+    results = stmt.scalars().all()
+    return results

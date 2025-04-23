@@ -51,4 +51,4 @@ async def get_trading_results(session: SessionDep,
                                                 oil_id,
                                                 delivery_type_id,
                                                 delivery_basis_id)
-    return {'success': True, 'results': results}
+    return {'success': True, 'last_trading_results': results}
