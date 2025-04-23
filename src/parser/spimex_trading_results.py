@@ -15,9 +15,9 @@ import pandas as pd
 from src.database import Session
 from src.models.spimex_trading_results import SpimexTradingResult
 
-
 if not os.path.isdir('src/parser/tables/'):
     os.makedirs('src/parser/tables/', exist_ok=True)
+
 
 class URLManager:
 
@@ -35,7 +35,7 @@ class URLManager:
         async with aiohttp.ClientSession() as session:
             while True:
                 self.page_number += 1
-                async with session.get(self.url+f'?page=page-{self.page_number}') as response:
+                async with session.get(self.url + f'?page=page-{self.page_number}') as response:
                     data = await response.text()
                     hrefs = re.findall(self.href_pattern, data)
 
@@ -104,11 +104,11 @@ class URLManager:
                 break
             new_df = new_df[:footer_index - 1]
             new_df.columns = ['exchange_product_id',
-                          'exchange_product_name',
-                          'delivery_basis_name',
-                          'volume',
-                          'total',
-                          'count']
+                              'exchange_product_name',
+                              'delivery_basis_name',
+                              'volume',
+                              'total',
+                              'count']
             new_df = new_df[new_df['count'] != '-']
             new_df = new_df.reset_index(drop=True)
             new_df['id'] = pd.RangeIndex(prev_df_length, len(new_df) + prev_df_length)

@@ -1,7 +1,6 @@
 import datetime
 from typing import Optional
 
-import sqlalchemy
 from sqlalchemy import select, desc, and_, func
 
 from src.models.spimex_trading_results import SpimexTradingResult
@@ -30,6 +29,7 @@ async def get_last_trading_dates(session: SessionDep, amount_of_days: int):
     result = stmt.scalars().all()
     return result
 
+
 # список торгов за заданный период (фильтрация по oil_id, delivery_type_id,
 # delivery_basis_id, start_date, end_date).
 async def get_dynamics(session: SessionDep,
@@ -55,6 +55,7 @@ async def get_dynamics(session: SessionDep,
     stmt = await session.execute(select(SpimexTradingResult).where(and_(*conditions)))
     results = stmt.scalars().all()
     return results
+
 
 # список последних торгов (фильтрация по oil_id, delivery_type_id, delivery_basis_id)
 async def get_trading_results(session: SessionDep,
