@@ -13,8 +13,6 @@ Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False
 
 async def create_db():
     async with engine.begin() as conn:
-        print('Dropping existing tables')
-        await conn.run_sync(BaseModel.metadata.drop_all)
         print('Creating databases')
         await conn.run_sync(BaseModel.metadata.create_all)
 

@@ -8,6 +8,7 @@ import xlrd
 import aiofiles
 import aiohttp
 from sqlalchemy import select
+from sqlalchemy.sql.expression import func
 
 import pandas as pd
 
@@ -29,7 +30,7 @@ class URLManager:
         self.dataframes = {}
         self.instances = []
 
-    async def get_data_from_query(self) -> None:
+    async def get_data_from_query(self) -> None | bool:
         print('Getting data from URL...')
         async with aiohttp.ClientSession() as session:
             while True:
@@ -37,12 +38,24 @@ class URLManager:
                 async with session.get(self.url+f'?page=page-{self.page_number}') as response:
                     data = await response.text()
                     hrefs = re.findall(self.href_pattern, data)
+
+                    newest_href = hrefs[0]
+
+                    newest_date = '{0}.{1}.{2}'.format(newest_href[-8:-6],
+                                                       newest_href[-10:-8],
+                                                       newest_href[-14:-10])
+                    newest_date = datetime.datetime.strptime(newest_date, '%d.%m.%Y').date()
+
+                    relevance = await self._check_relevance(newest_date)
+
                     if f'{hrefs[0][-22:]}.xls' not in os.listdir('src/parser/tables/'):
                         for href in hrefs:
                             href = f'https://spimex.com/{href}'
                             self.tables_hrefs.append(href)
                     else:
+                        print('All tables are already downloaded')
                         break
+        return relevance
 
     async def download_tables(self) -> None:
         print('Downloading tables...')
@@ -51,15 +64,21 @@ class URLManager:
             for href in self.tables_hrefs:
                 file_path = f'src/parser/tables/{href[-22:]}.xls'
                 if file_path not in self.existing_files:
-                    tasks.append(self.download_table_file(session, href, file_path))
+                    tasks.append(self._download_table_file(session, href, file_path))
             await asyncio.gather(*tasks)
 
-    async def download_table_file(self, session, url, file_path):
+    async def _download_table_file(self, session, url, file_path):
         async with session.get(url) as response:
             if response.status == 200:
                 content = await response.read()
                 async with aiofiles.open(file_path, 'wb') as table_file:
                     await table_file.write(content)
+
+    async def _check_relevance(self, last_url_date):
+        async with Session() as session:
+            stmt = await session.execute(func.max(SpimexTradingResult.date))
+            last_database_date = stmt.scalar()
+            return last_url_date == last_database_date
 
     def convert_to_df(self) -> None:
         print('Converting tables to dataframes...')
@@ -129,7 +148,7 @@ class URLManager:
                         df.loc[index, 'updated_on'] = None
                         df.loc[index, 'created_on'] = datetime.date.today()
                         rows_affected += 1
-                        tasks.append(self.convert_decorator(row))
+                        tasks.append(self._convert_decorator(row))
 
             await asyncio.gather(*tasks)
             session.add_all(self.instances)
@@ -139,9 +158,9 @@ class URLManager:
             else:
                 print('None of rows have been inserted')
 
-    async def convert_decorator(self, row):
-        await self.convert_row_to_model(row)
+    async def _convert_decorator(self, row):
+        await self._convert_row_to_model(row)
 
-    async def convert_row_to_model(self, row):
+    async def _convert_row_to_model(self, row):
         row = SpimexTradingResult(**row.to_dict())
         self.instances.append(row)
