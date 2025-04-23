@@ -1,13 +1,15 @@
-from fastapi import APIRouter
+import datetime
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException
 
 from src.api import service
 from src.api.dependencies import SessionDep
-from src.api.schemas import DynamicsResultsSchema
 
 router = APIRouter()
 
 # список дат последних торговых дней (фильтрация по кол-ву последних торговых дней).
-@router.get('/last{amount}dates',
+@router.get('/last_dates',
             tags=['Операции с результатами торгов'],
             summary='Получить список дат последний торговый дней')
 async def get_last_trading_dates(session: SessionDep, amount: int):
@@ -16,19 +18,37 @@ async def get_last_trading_dates(session: SessionDep, amount: int):
 
 # список торгов за заданный период (фильтрация по oil_id, delivery_type_id,
 # delivery_basis_id, start_date, end_date).
-@router.post('/dynamics',
+@router.get('/dynamics',
             tags=['Операции с результатами торгов'],
             summary='Получить список торгов за заданный период'
             )
-async def get_dynamics(session: SessionDep, result_params: DynamicsResultsSchema):
-    dynamics = await service.get_dynamics(session, result_params)
-    return {'success': True, 'dynamics': dynamics}
+async def get_dynamics(session: SessionDep,
+                       start_date: datetime.date, end_date: datetime.date,
+                       oil_id: Optional[str | None] = None,
+                       delivery_type_id: Optional[str | None] = None,
+                       delivery_basis_id: Optional[str | None] = None
+                       ):
+    try:
+        dynamics = await service.get_dynamics(session,
+                                              start_date, end_date,
+                                              oil_id, delivery_type_id, delivery_basis_id
+                                              )
+        return {'success': True, 'dynamics': dynamics}
+    except ValueError as e:
+        return HTTPException(status_code=400, detail=f'{e}')
 
 # список последних торгов (фильтрация по oil_id, delivery_type_id, delivery_basis_id)
 @router.get('/last_results',
             tags=['Операции с результатами торгов'],
             summary='Получить список последних торгов'
             )
-async def get_trading_results(session: SessionDep):
-    results = await service.get_trading_results(session)
+async def get_trading_results(session: SessionDep,
+                              oil_id: Optional[str | None] = None,
+                              delivery_type_id: Optional[str | None] = None,
+                              delivery_basis_id: Optional[str | None] = None
+                              ):
+    results = await service.get_trading_results(session,
+                                                oil_id,
+                                                delivery_type_id,
+                                                delivery_basis_id)
     return {'success': True, 'results': results}
