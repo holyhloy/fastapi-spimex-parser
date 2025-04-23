@@ -6,11 +6,11 @@ from src.api.dependencies import SessionDep
 router = APIRouter()
 
 # список дат последних торговых дней (фильтрация по кол-ву последних торговых дней).
-@router.get('/last_dates',
+@router.get('/last{amount}dates',
             tags=['Операции с результатами торгов'],
             summary='Получить список дат последний торговый дней')
-async def get_last_trading_dates(session: SessionDep):
-    last_dates = await service.get_last_trading_dates(session)
+async def get_last_trading_dates(session: SessionDep, amount: int):
+    last_dates = await service.get_last_trading_dates(session, amount)
     return {'success': True, 'last_trading_dates': last_dates}
 
 # список торгов за заданный период (фильтрация по oil_id, delivery_type_id,
