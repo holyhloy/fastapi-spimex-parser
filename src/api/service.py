@@ -26,9 +26,9 @@ async def get_last_trading_dates(session: SessionDep):
 
 # список торгов за заданный период (фильтрация по oil_id, delivery_type_id,
 # delivery_basis_id, start_date, end_date).
-async def get_dynamics():
+async def get_dynamics(session: SessionDep):
     ...
 
 # список последних торгов (фильтрация по oil_id, delivery_type_id, delivery_basis_id)
-async def get_trading_results():
+async def get_trading_results(session: SessionDep):
     ...
