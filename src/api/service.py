@@ -63,7 +63,7 @@ async def get_trading_results(session: SessionDep,
                               delivery_type_id: Optional[str | None] = None,
                               delivery_basis_id: Optional[str | None] = None
                               ):
-    newest_date_subquery = select(func.max(SpimexTradingResult.date)).subquery()
+    newest_date_subquery = select(func.max(SpimexTradingResult.date)).scalar_subquery()
     conditions = [SpimexTradingResult.date == newest_date_subquery]
 
     filters = {

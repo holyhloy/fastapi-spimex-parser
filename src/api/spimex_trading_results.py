@@ -12,7 +12,7 @@ router = APIRouter()
 # список дат последних торговых дней (фильтрация по кол-ву последних торговых дней).
 @router.get('/last_dates',
             tags=['Операции с результатами торгов'],
-            summary='Получить список дат последний торговый дней')
+            summary='Получить список дат последних торговый дней')
 async def get_last_trading_dates(session: SessionDep, amount: int):
     last_dates = await service.get_last_trading_dates(session, amount)
     return {'success': True, 'last_trading_dates': last_dates}
