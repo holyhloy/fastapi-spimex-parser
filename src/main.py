@@ -23,7 +23,7 @@ scheduler.add_job(clear_cache, 'cron', hour=12, minute=15)
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
-    redis = aioredis.from_url("redis://localhost")
+    redis = aioredis.from_url("redis://redis") # use 'localhost' instead of 'redis' to run without docker
     FastAPICache.init(RedisBackend(redis), prefix="api:cache")
     scheduler.start()
     await create_db()
