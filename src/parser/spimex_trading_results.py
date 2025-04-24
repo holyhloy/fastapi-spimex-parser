@@ -68,14 +68,14 @@ class URLManager:
                         tasks.append(self._download_table_file(session, href, file_path))
             await asyncio.gather(*tasks)
 
-    async def _download_table_file(self, session, url, file_path):
+    async def _download_table_file(self, session, url, file_path) -> None:
         async with session.get(url) as response:
             if response.status == 200:
                 content = await response.read()
                 async with aiofiles.open(file_path, 'wb') as table_file:
                     await table_file.write(content)
 
-    async def _check_relevance(self, last_url_date):
+    async def _check_relevance(self, last_url_date) -> bool:
         async with Session() as session:
             stmt = await session.execute(func.max(SpimexTradingResult.date))
             last_database_date = stmt.scalar()
@@ -159,9 +159,9 @@ class URLManager:
             else:
                 print('None of rows have been inserted')
 
-    async def _convert_decorator(self, row):
+    async def _convert_decorator(self, row) -> None:
         await self._convert_row_to_model(row)
 
-    async def _convert_row_to_model(self, row):
+    async def _convert_row_to_model(self, row) -> None:
         row = SpimexTradingResult(**row.to_dict())
         self.instances.append(row)

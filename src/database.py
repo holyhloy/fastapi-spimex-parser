@@ -1,3 +1,5 @@
+from typing import Any, AsyncGenerator
+
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession, AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase
 from src.config import DB_HOST, DB_NAME, DB_PASS, DB_PORT, DB_USER
@@ -13,12 +15,24 @@ engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
 Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
-async def create_db():
+async def create_db() -> None:
+    """
+    Creates tables in database.
+    Does nothing if tables are already exist
+
+    :return: None
+    Just creates table if it doesn't exist and returns nothing
+    """
     async with engine.begin() as conn:
         print('Creating databases')
         await conn.run_sync(BaseModel.metadata.create_all)
 
 
-async def get_session():
+async def get_session() -> AsyncGenerator[AsyncSession, Any]:
+    """
+    Yields session for manipulating with database data
+
+    :return: session object
+    """
     async with Session() as session:
         yield session

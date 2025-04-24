@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator, Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
@@ -18,12 +19,21 @@ async def clear_cache():
     await FastAPICache.clear()
 
 scheduler = AsyncIOScheduler()
-scheduler.add_job(clear_cache, 'cron', hour=12, minute=15)
+scheduler.add_job(clear_cache, 'cron', hour=14, minute=11)
 
 
 @asynccontextmanager
-async def lifespan(application: FastAPI):
-    redis = aioredis.from_url("redis://redis") # use 'localhost' instead of 'redis' to run without docker
+async def lifespan(_: FastAPI) -> AsyncGenerator[Any, Any | None]:
+    """
+    Function provides Postgres and Redis pulling before
+    app is started
+
+    :param _: does nothing, using just to put it
+    into lifespan param of app initialization
+
+    :return: AsyncGenerator[Any | None]
+    """
+    redis = aioredis.from_url("redis://redis")  # use 'localhost' instead of 'redis' to run without docker
     FastAPICache.init(RedisBackend(redis), prefix="api:cache")
     scheduler.start()
     await create_db()
