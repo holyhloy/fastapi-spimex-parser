@@ -1,7 +1,13 @@
 import datetime
 from typing import Optional
+from urllib.parse import urlparse
+
+from starlette.requests import Request
+from starlette.responses import Response
 
 from fastapi import APIRouter, HTTPException
+
+from fastapi_cache.decorator import cache
 
 from src.api import service
 from src.api.dependencies import SessionDep
@@ -9,10 +15,28 @@ from src.api.dependencies import SessionDep
 router = APIRouter()
 
 
+def cache_key_builder(
+    func,
+    namespace: Optional[str] = "",
+    request: Request = None,
+    response: Response = None,
+    *args,
+    **kwargs
+):
+    del kwargs['kwargs']['session']
+    if request:
+        parsed = urlparse(str(request.url))
+        cache_key = f"{namespace}:{func.__module__}:{func.__name__}:{parsed.path}:{args}:{kwargs}"
+    else:
+        cache_key = f"{namespace}:{func.__module__}:{func.__name__}:{args}:{kwargs}"
+    return cache_key
+
+
 # список дат последних торговых дней (фильтрация по кол-ву последних торговых дней).
 @router.get('/last_dates',
             tags=['Операции с результатами торгов'],
             summary='Получить список дат последних торговый дней')
+@cache(key_builder=cache_key_builder)
 async def get_last_trading_dates(session: SessionDep, amount: int):
     last_dates = await service.get_last_trading_dates(session, amount)
     return {'success': True, 'last_trading_dates': last_dates}
@@ -24,6 +48,7 @@ async def get_last_trading_dates(session: SessionDep, amount: int):
             tags=['Операции с результатами торгов'],
             summary='Получить список торгов за заданный период'
             )
+@cache(key_builder=cache_key_builder)
 async def get_dynamics(session: SessionDep,
                        start_date: datetime.date, end_date: datetime.date,
                        oil_id: Optional[str | None] = None,
@@ -45,6 +70,7 @@ async def get_dynamics(session: SessionDep,
             tags=['Операции с результатами торгов'],
             summary='Получить список последних торгов'
             )
+@cache(key_builder=cache_key_builder)
 async def get_trading_results(session: SessionDep,
                               oil_id: Optional[str | None] = None,
                               delivery_type_id: Optional[str | None] = None,
