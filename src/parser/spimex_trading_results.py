@@ -48,7 +48,7 @@ class URLManager:
 
                     relevance = await self._check_relevance(newest_date)
 
-                    if f'{hrefs[0][-22:]}.xls' not in os.listdir('src/parser/tables/'):
+                    if f'{hrefs[0][-22:]}.xls' not in self.existing_files:
                         for href in hrefs:
                             href = f'https://spimex.com/{href}'
                             self.tables_hrefs.append(href)
@@ -58,13 +58,14 @@ class URLManager:
         return relevance
 
     async def download_tables(self) -> None:
-        print('Downloading tables...')
         async with aiohttp.ClientSession() as session:
             tasks = []
-            for href in self.tables_hrefs:
-                file_path = f'src/parser/tables/{href[-22:]}.xls'
-                if file_path not in self.existing_files:
-                    tasks.append(self._download_table_file(session, href, file_path))
+            if self.tables_hrefs:
+                print('Downloading tables...')
+                for href in self.tables_hrefs:
+                    file_path = f'src/parser/tables/{href[-22:]}.xls'
+                    if file_path not in self.existing_files:
+                        tasks.append(self._download_table_file(session, href, file_path))
             await asyncio.gather(*tasks)
 
     async def _download_table_file(self, session, url, file_path):
