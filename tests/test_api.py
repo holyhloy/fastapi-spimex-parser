@@ -10,5 +10,5 @@ async def test_get_last_trading_dates(client, mocker):
     response = await client.get("/last_dates?amount=2")
 
     assert response.status_code == 200
-    assert response.json()["success"] is True
-    assert len(response.json()["last_trading_dates"]) == 2
+    assert response.json() == {'success': True,
+                               'last_trading_dates': mock_last_dates}
