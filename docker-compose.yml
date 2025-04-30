@@ -29,14 +29,13 @@ services:
 
   api:
     container_name: fastapi-web
-    build: .
+    build:
+      context: .
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - .:/usr/src/app/
     ports:
       - "8000:8000"
-    env_file:
-      - ./.env
     depends_on:
       db:
         condition: service_healthy

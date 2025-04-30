@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     REDIS_HOST: str
 
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file="envs/.env")
 
     @property
     def DB_URL(self):
