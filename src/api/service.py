@@ -70,8 +70,8 @@ async def get_dynamics(session: SessionDep,
 
     :return: database response - Sequence[Row | RowMapping]
     """
-    if start_date >= end_date:
-        raise ValueError('Start date must be less than end date.')
+    if start_date > end_date:
+        raise ValueError('Start date must be less or equal to the end date.')
 
     conditions = [SpimexTradingResult.date.between(start_date, end_date)]
 
