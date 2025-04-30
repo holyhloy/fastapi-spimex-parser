@@ -36,7 +36,10 @@ def cache_key_builder(
 
     :return: string cache key used for name a note in Redis
     """
-    del kwargs['kwargs']['session']
+    try:
+        del kwargs['kwargs']['session']
+    except KeyError:
+        pass
     if request:
         parsed = urlparse(str(request.url))
         cache_key = f"{namespace}:{func.__module__}:{func.__name__}:{parsed.path}:{args}:{kwargs}"
