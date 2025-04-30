@@ -6,6 +6,8 @@ from fastapi_cache.backends.inmemory import InMemoryBackend
 from httpx import AsyncClient, ASGITransport
 
 from src.api import main_router
+from src.config import settings
+from src.database import BaseModel, engine
 
 
 @pytest.fixture
@@ -20,6 +22,13 @@ async def client(app: FastAPI):
     async with AsyncClient(transport=ASGITransport(app=app),
                            base_url='http://test') as client:
         yield client
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def setup_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(BaseModel.metadata.drop_all)
+        await conn.run_sync(BaseModel.metadata.create_all)
 
 
 @pytest.fixture(autouse=True, scope="session")
