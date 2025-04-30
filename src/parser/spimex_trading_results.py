@@ -33,7 +33,16 @@ class URLManager:
     async def get_data_from_query(self) -> None | bool:
         print('Getting data from URL...')
         async with aiohttp.ClientSession() as session:
+            downloaded_tables = 0
+            all_downloaded = False
             while True:
+                if all_downloaded:
+                    if downloaded_tables > 0:
+                        print(f'{downloaded_tables} new tables have been downloaded')
+                        break
+                    else:
+                        print('All tables have been already downloaded')
+                        break
                 self.page_number += 1
                 async with session.get(self.url + f'?page=page-{self.page_number}') as response:
                     data = await response.text()
@@ -48,13 +57,13 @@ class URLManager:
 
                     relevance = await self._check_relevance(newest_date)
 
-                    if f'{hrefs[0][-22:]}.xls' not in self.existing_files:
-                        for href in hrefs:
+                    for href in hrefs:
+                        if f'{href[-22:]}.xls' not in self.existing_files:
                             href = f'https://spimex.com/{href}'
                             self.tables_hrefs.append(href)
-                    else:
-                        print('All tables are already downloaded')
-                        break
+                            downloaded_tables += 1
+                        else:
+                            all_downloaded = True
         return relevance
 
     async def download_tables(self) -> None:
@@ -155,7 +164,7 @@ class URLManager:
             session.add_all(self.instances)
             await session.commit()
             if rows_affected > 0:
-                print(f'{rows_affected} have been inserted')
+                print(f'{rows_affected} rows have been inserted')
             else:
                 print('None of rows have been inserted')
 
