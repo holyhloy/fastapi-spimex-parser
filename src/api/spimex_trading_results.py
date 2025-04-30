@@ -38,13 +38,13 @@ def cache_key_builder(
     """
     try:
         del kwargs['kwargs']['session']
-    except KeyError: # pragma: no cover
+    except KeyError:  # pragma: no cover
         pass
     if request:
         parsed = urlparse(str(request.url))
         cache_key = f"{namespace}:{func.__module__}:{func.__name__}:{parsed.path}:{args}:{kwargs}"
     else:
-        cache_key = f"{namespace}:{func.__module__}:{func.__name__}:{args}:{kwargs}" # pragma: no cover
+        cache_key = f"{namespace}:{func.__module__}:{func.__name__}:{args}:{kwargs}"  # pragma: no cover
     return cache_key
 
 
