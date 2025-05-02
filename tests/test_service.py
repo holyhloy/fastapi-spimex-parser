@@ -121,6 +121,15 @@ async def test_get_dynamics_filters_by_period_and_fields(session, instances, set
 
 
 @pytest.mark.asyncio
+async def test_get_dynamics_raises_value_error_on_invalid_dates(session):
+    start_date = datetime.date(2024, 4, 10)
+    end_date = datetime.date(2024, 4, 5)
+
+    with pytest.raises(ValueError, match="Start date must be less or equal to the end date."):
+        await get_dynamics(session, start_date, end_date)
+
+
+@pytest.mark.asyncio
 async def test_get_trading_results_filters_by_newest_date(session, instances, setup_db):
     session.add_all(instances)
     await session.commit()
