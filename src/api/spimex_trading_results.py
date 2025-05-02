@@ -53,7 +53,7 @@ def cache_key_builder(
             tags=['Операции с результатами торгов'],
             summary='Получить список дат последних торговый дней')
 @cache(key_builder=cache_key_builder)
-async def get_last_trading_dates(session: SessionDep, amount: int) -> dict[str, bool]:
+async def get_last_trading_dates(session: SessionDep, amount: int) -> dict[str, bool] | HTTPException:
     """
     Endpoint that provides GET-query to get a list of last trading days dates
 
@@ -63,8 +63,11 @@ async def get_last_trading_dates(session: SessionDep, amount: int) -> dict[str, 
     :return: a dictionary that will be serialized into a JSON,
     containing a bool value of success and dates in string format
     """
-    last_dates = await service.get_last_trading_dates(session, amount)
-    return {'success': True, 'last_trading_dates': last_dates}
+    try:
+        last_dates = await service.get_last_trading_dates(session, amount)
+        return {'success': True, 'last_trading_dates': last_dates}
+    except ValueError as e:
+        return HTTPException(status_code=400, detail=f'{e}')
 
 
 # список торгов за заданный период (фильтрация по oil_id, delivery_type_id,

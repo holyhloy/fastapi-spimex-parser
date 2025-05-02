@@ -41,6 +41,9 @@ async def get_last_trading_dates(session: SessionDep, amount_of_days: int) -> Se
 
     :return: database response - Sequence[Row | RowMapping]
     """
+    if amount_of_days <= 0:
+        raise ValueError("Amount of days must be positive.")
+
     stmt = await session.execute(select(SpimexTradingResult.date)
                                  .group_by(SpimexTradingResult.date)
                                  .order_by(desc(SpimexTradingResult.date))

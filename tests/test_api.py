@@ -67,16 +67,6 @@ async def test_get_dynamics_success_and_cached(client, mocker):
     assert response1.json() == {'success': True, 'dynamics': mock_dynamics}
     assert mock_func.call_count == 1
 
-    # data = response1.json()
-
-    # for row in data['dynamics']:
-    #     assert 'A100' == row['oil_id']
-    #     assert 'A' == row['delivery_type_id']
-    #     assert 'ABS' == row['delivery_basis_id']
-    #     assert (datetime.date(2025, 4, 24) <=
-    #             datetime.date.fromisoformat(row['date']) <=
-    #             datetime.date(2025, 4, 30))
-
     response2 = await client.get('/dynamics',
                                  params={
                                      'start_date': '2025-04-24',
@@ -126,13 +116,6 @@ async def test_get_trading_results_success_and_cached(client, mocker):
     assert response1.status_code == 200
     assert response1.json() == {'success': True, 'last_trading_results': mock_last_results}
     assert mock_func.call_count == 1
-
-    # data = response1.json()
-    #
-    # for row in data['last_trading_results']:
-    #     assert 'A100' == row['oil_id']
-    #     assert 'A' == row['delivery_type_id']
-    #     assert 'ABS' == row['delivery_basis_id']
 
     response2 = await client.get('/last_results')
 

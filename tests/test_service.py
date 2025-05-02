@@ -99,6 +99,12 @@ async def test_get_last_trading_dates(session, instances, setup_db):
 
 
 @pytest.mark.asyncio
+async def test_get_last_trading_dates_invalid_amount(session):
+    with pytest.raises(ValueError):
+        await get_last_trading_dates(session, -5)
+
+
+@pytest.mark.asyncio
 async def test_get_dynamics_filters_by_period_and_fields(session, instances, setup_db):
     session.add_all(instances)
     await session.commit()
@@ -130,7 +136,7 @@ async def test_get_dynamics_raises_value_error_on_invalid_dates(session):
 
 
 @pytest.mark.asyncio
-async def test_get_trading_results_filters_by_newest_date(session, instances, setup_db):
+async def test_get_trading_results_with_filters(session, instances, setup_db):
     session.add_all(instances)
     await session.commit()
 
