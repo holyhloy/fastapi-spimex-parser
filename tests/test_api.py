@@ -4,7 +4,7 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_get_last_trading_dates_success(client, mocker):
+async def test_get_last_trading_dates_success_and_cached(client, mocker):
     mock_last_dates = ["2025-04-22", "2025-04-23"]
     mock_func = AsyncMock(return_value=mock_last_dates)
     mocker.patch("src.api.service.get_last_trading_dates", mock_func)
@@ -25,7 +25,13 @@ async def test_get_last_trading_dates_success(client, mocker):
 
 
 @pytest.mark.asyncio
-async def test_get_dynamics_success(client, mocker):
+async def test_get_last_trading_dates_returns_422(client):
+    response1 = await client.get("/last_dates")
+    assert response1.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_get_dynamics_success_and_cached(client, mocker):
     mock_dynamics = \
         [
             {'id': 1,
@@ -86,7 +92,13 @@ async def test_get_dynamics_success(client, mocker):
 
 
 @pytest.mark.asyncio
-async def test_get_trading_results_success(client, mocker):
+async def test_get_dynamics_returns_422(client):
+    response = await client.get('/dynamics')
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_get_trading_results_success_and_cached(client, mocker):
     mock_last_results = \
         [
             {'id': 1,
