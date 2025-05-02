@@ -32,7 +32,7 @@ async def client(app: FastAPI):
         yield client
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture
 async def setup_db():
     async with test_engine.begin() as conn:
         assert settings.MODE == 'TEST'
