@@ -73,7 +73,7 @@ class URLManager:
                 print('Downloading tables...')
                 for href in self.tables_hrefs:
                     file_path = f'src/parser/tables/{href[-22:]}.xls'
-                    if file_path not in self.existing_files:
+                    if f'{href[-22:]}.xls' not in self.existing_files:
                         tasks.append(self._download_table_file(session, href, file_path))
             await asyncio.gather(*tasks)
 

@@ -11,6 +11,7 @@ from src.api import main_router
 from src.config import settings
 from src.database import BaseModel
 from src.models.spimex_trading_results import SpimexTradingResult
+from src.parser.spimex_trading_results import URLManager
 
 DATABASE_URL = settings.DB_URL
 
@@ -50,3 +51,8 @@ async def session():
 @pytest.fixture(autouse=True, scope="session")
 def init_cache():
     FastAPICache.init(InMemoryBackend(), prefix="test-cache")
+
+
+@pytest.fixture
+def url_manager():
+    return URLManager()
