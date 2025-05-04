@@ -37,7 +37,7 @@ async def test_get_data_from_query(mock_get, url_manager, tables_hrefs, capfd):
 @pytest.mark.asyncio
 @patch("aiofiles.open")
 @patch("aiohttp.ClientSession.get")
-async def test_download_tables(mock_get, mock_aiofiles_open, url_manager):
+async def test_download_tables(mock_get, mock_aiofiles_open, url_manager, capfd):
     url_manager.tables_hrefs = [
         "https://spimex.com/upload/reports/oil_xls/oil_xls_20250430162000.xls"
     ]
@@ -56,12 +56,16 @@ async def test_download_tables(mock_get, mock_aiofiles_open, url_manager):
 
     await url_manager.download_tables()
 
+    out, err = capfd.readouterr()
+
+    assert 'Downloading tables...' in out
+
     mock_file.write.assert_called_once_with(b"Fake content")
 
 
 @patch('os.listdir')
 @patch('pandas.read_excel')
-def test_convert_to_df(mock_read_excel, mock_listdir, url_manager, tmp_path):
+def test_convert_to_df(mock_read_excel, mock_listdir, url_manager, tmp_path, capfd):
     file_path = tmp_path / "test.xls"
     df = pd.DataFrame({
         "Код\nИнструмента": ["TEST-123"],
@@ -95,12 +99,16 @@ def test_convert_to_df(mock_read_excel, mock_listdir, url_manager, tmp_path):
     url_manager.convert_to_df()
     mock_read_excel.assert_called_once_with("src/parser/tables/test.xls", usecols="B:F,O", engine="xlrd")
 
+    out, err = capfd.readouterr()
+
+    assert 'Converting tables to dataframes...' in out
+
     assert isinstance(url_manager.dataframes["src/parser/tables/test.xls"], pd.DataFrame)
     assert url_manager.dataframes["src/parser/tables/test.xls"].shape == (1, 16)
 
 
 @patch('pandas.read_excel')
-def test_validate_tables_calls_read_excel_once(mock_read_excel, url_manager):
+def test_validate_tables_calls_read_excel_once(mock_read_excel, url_manager, capfd):
     fake_path = 'src/parser/tables/fake_file.xls'
 
     base_df = pd.DataFrame({
@@ -135,6 +143,11 @@ def test_validate_tables_calls_read_excel_once(mock_read_excel, url_manager):
     )
 
     result_df = url_manager.dataframes[fake_path]
+
+    out, err = capfd.readouterr()
+
+    assert 'Validating tables...' in out
+
     assert list(result_df.columns) == [
         'exchange_product_id',
         'exchange_product_name',
@@ -147,7 +160,7 @@ def test_validate_tables_calls_read_excel_once(mock_read_excel, url_manager):
     assert len(result_df) == 2  # row with '-' excluded
 
 
-def test_add_columns(url_manager):
+def test_add_columns(url_manager, capfd):
     df = pd.DataFrame({
         "exchange_product_id": ["ABCD123X"],
         "exchange_product_name": ["Test"],
@@ -160,13 +173,19 @@ def test_add_columns(url_manager):
     url_manager.add_columns()
 
     updated_df = url_manager.dataframes["src/parser/tables/oil_xls_20250430162000.xls"]
+
+    out, err = capfd.readouterr()
+
+    assert 'Adding columns...' in out
+
     assert "oil_id" in updated_df.columns
     assert "delivery_basis_id" in updated_df.columns
     assert "delivery_type_id" in updated_df.columns
 
 
 @pytest.mark.asyncio
-async def test_load_to_db_inserts_new_records(mocker, url_manager):
+@pytest.mark.parametrize('existing_ids', [[], [10]])
+async def test_load_to_db_inserts_new_records(mocker, url_manager, existing_ids, capfd):
     df = pd.DataFrame([{
         'exchange_product_id': '1234567',
         'exchange_product_name': 'Test Oil',
@@ -184,7 +203,7 @@ async def test_load_to_db_inserts_new_records(mocker, url_manager):
     url_manager.dataframes = {'dummy_path': df}
 
     mock_scalars = MagicMock()
-    mock_scalars.all.return_value = []
+    mock_scalars.all.return_value = existing_ids
 
     mock_execute_result = MagicMock()
     mock_execute_result.scalars.return_value = mock_scalars
@@ -201,7 +220,15 @@ async def test_load_to_db_inserts_new_records(mocker, url_manager):
 
     await url_manager.load_to_db()
 
-    assert len(url_manager.instances) == 1
-    assert isinstance(url_manager.instances[0], SpimexTradingResult)
+    out, err = capfd.readouterr()
+
+    if existing_ids:
+        assert len(url_manager.instances) == 0
+        assert 'updated_on' in df.columns
+        assert 'None of rows have been inserted' in out
+    else:
+        assert len(url_manager.instances) == 1
+        assert isinstance(url_manager.instances[0], SpimexTradingResult)
+        assert 'rows have been inserted' in out
     mock_session.add_all.assert_called_once_with(url_manager.instances)
     mock_session.commit.assert_awaited()
