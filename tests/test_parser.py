@@ -37,11 +37,13 @@ async def test_get_data_from_query(mock_get, url_manager, tables_hrefs, relevanc
 @pytest.mark.asyncio
 @patch("aiofiles.open")
 @patch("aiohttp.ClientSession.get")
-async def test_download_tables(mock_get, mock_aiofiles_open, url_manager, capfd):
-    url_manager.tables_hrefs = [
-        "https://spimex.com/upload/reports/oil_xls/oil_xls_20250430162000.xls"
-    ]
-    url_manager.existing_files = ['']
+@pytest.mark.parametrize("tables_hrefs",
+                         [[], ["https://spimex.com/upload/reports/oil_xls/oil_xls_20250430162000"]])
+@pytest.mark.parametrize("existing_files",
+                         [[], ["oil_xls_20250430162000.xls"]])
+async def test_download_tables(mock_get, mock_aiofiles_open, url_manager, tables_hrefs, existing_files, capfd):
+    url_manager.tables_hrefs = tables_hrefs
+    url_manager.existing_files = existing_files
 
     mock_response = AsyncMock()
     mock_response.status = 200
@@ -57,10 +59,32 @@ async def test_download_tables(mock_get, mock_aiofiles_open, url_manager, capfd)
     await url_manager.download_tables()
 
     out, err = capfd.readouterr()
+    if tables_hrefs and not existing_files:
+        assert 'Downloading tables...' in out
+        mock_file.write.assert_called_once_with(b"Fake content")
+    else:
+        assert 'All tables are already downloaded' in out
 
-    assert 'Downloading tables...' in out
+@pytest.mark.asyncio
+@patch("aiofiles.open")
+@patch("aiohttp.ClientSession.get")
+async def test_download_tables_raises_runtime_error(mock_get, mock_aiofiles_open, url_manager):
+    url_manager.tables_hrefs = ["https://spimex.com/upload/reports/oil_xls/oil_xls_20250430162000"]
+    url_manager.existing_files = []
 
-    mock_file.write.assert_called_once_with(b"Fake content")
+    mock_response = AsyncMock()
+    mock_response.status = 400
+    mock_response.read = AsyncMock(return_value=b"Fake Content")
+    mock_get.return_value.__aenter__.return_value = mock_response
+
+    mock_file = AsyncMock()
+    mock_context_manager = MagicMock()
+    mock_context_manager.__aenter__ = AsyncMock(return_value=mock_file)
+    mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+    mock_aiofiles_open.return_value = mock_context_manager
+
+    with pytest.raises(RuntimeError):
+        await url_manager.download_tables()
 
 
 @patch('os.listdir')

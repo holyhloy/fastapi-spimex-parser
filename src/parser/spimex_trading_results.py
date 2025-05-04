@@ -88,6 +88,8 @@ class URLManager:
                 content = await response.read()
                 async with aiofiles.open(file_path, 'wb') as table_file:
                     await table_file.write(content)
+            else:
+                raise RuntimeError(f"{await response.text()}")
 
     async def _check_relevance(self, last_url_date) -> bool:  # pragma: no cover
         async with Session() as session:
@@ -116,11 +118,12 @@ class URLManager:
             new_df = pd.read_excel(file_path, header=tonn_index[0] + 2, usecols='B:F,O', skiprows=[tonn_index[0] + 3])
             first_column_list = new_df['Код\nИнструмента'].tolist()
             footer_index = 0
-            for code in first_column_list:
+            for code in first_column_list:  # pragma: no cover
                 if re.match(table_borders_pattern, code):
                     continue
-                footer_index = first_column_list.index(code)
-                break
+                else:
+                    footer_index = first_column_list.index(code)
+                    break
             new_df = new_df[:footer_index - 1]
             new_df.columns = ['exchange_product_id',
                               'exchange_product_name',
