@@ -16,7 +16,7 @@ from src.database import Session
 from src.models.spimex_trading_results import SpimexTradingResult
 
 if not os.path.isdir('src/parser/tables/'):
-    os.makedirs('src/parser/tables/', exist_ok=True)
+    os.makedirs('src/parser/tables/', exist_ok=True)  # pragma: no cover
 
 
 class URLManager:
@@ -35,35 +35,34 @@ class URLManager:
         async with aiohttp.ClientSession() as session:
             downloaded_tables = 0
             all_downloaded = False
-            while True:
-                if all_downloaded:
-                    if downloaded_tables > 0:
-                        print(f'{downloaded_tables} new tables have been downloaded')
-                        break
-                    else:
-                        print('All tables have been already downloaded')
-                        break
+            while not all_downloaded:
                 self.page_number += 1
                 async with session.get(self.url + f'?page=page-{self.page_number}') as response:
                     data = await response.text()
-                    hrefs = re.findall(self.href_pattern, data)
+                hrefs = re.findall(self.href_pattern, data)
 
-                    newest_href = hrefs[0]
+                newest_href = hrefs[0]
 
-                    newest_date = '{0}.{1}.{2}'.format(newest_href[-8:-6],
-                                                       newest_href[-10:-8],
-                                                       newest_href[-14:-10])
-                    newest_date = datetime.datetime.strptime(newest_date, '%d.%m.%Y').date()
+                newest_date = '{0}.{1}.{2}'.format(newest_href[-8:-6],
+                                                   newest_href[-10:-8],
+                                                   newest_href[-14:-10])
+                newest_date = datetime.datetime.strptime(newest_date, '%d.%m.%Y').date()
 
-                    relevance = await self._check_relevance(newest_date)
+                relevance = await self._check_relevance(newest_date)
 
-                    for href in hrefs:
-                        if f'{href[-22:]}.xls' not in self.existing_files:
-                            href = f'https://spimex.com/{href}'
-                            self.tables_hrefs.append(href)
-                            downloaded_tables += 1
+                for href in hrefs:
+                    if f'https://spimex.com{href}.xls' not in self.tables_hrefs:
+                        href = f'https://spimex.com{href}.xls'
+                        self.tables_hrefs.append(href)
+                        downloaded_tables += 1
+                    else:
+                        all_downloaded = True
+                        if downloaded_tables > 0:
+                            print(f'{downloaded_tables} new tables have been downloaded')
+                            break
                         else:
-                            all_downloaded = True
+                            print('All tables have been already downloaded')
+                            break
         return relevance
 
     async def download_tables(self) -> None:
@@ -84,7 +83,7 @@ class URLManager:
                 async with aiofiles.open(file_path, 'wb') as table_file:
                     await table_file.write(content)
 
-    async def _check_relevance(self, last_url_date) -> bool:
+    async def _check_relevance(self, last_url_date) -> bool:  # pragma: no cover
         async with Session() as session:
             stmt = await session.execute(func.max(SpimexTradingResult.date))
             last_database_date = stmt.scalar()

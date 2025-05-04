@@ -1,6 +1,8 @@
 import pandas as pd
 import pytest
 import datetime
+
+import pytest_asyncio
 import xlwt
 from unittest.mock import AsyncMock, patch, MagicMock
 
@@ -8,19 +10,26 @@ from src.models.spimex_trading_results import SpimexTradingResult
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("tables_hrefs", [[], ['https://spimex.com/upload/reports/oil_xls/oil_xls_20260430162000.xls']])
 @patch("aiohttp.ClientSession.get")
-async def test_get_data_from_query_relevance_true(mock_get, url_manager):
+async def test_get_data_from_query(mock_get, url_manager, tables_hrefs, capfd):
     mock_response = AsyncMock()
     mock_response.status = 200
     mock_response.text = AsyncMock(return_value="""
-        <a href="/upload/reports/oil_xls/oil_xls_20250430162000.xls?r=6602"></a>
+        <a href="/upload/reports/oil_xls/oil_xls_20260430162000.xls?r=6602"></a>
     """)
-
+    url_manager.tables_hrefs = tables_hrefs
     mock_get.return_value.__aenter__.return_value = mock_response
 
     url_manager._check_relevance = AsyncMock(return_value=True)
+    initial_tables_hrefs_length = len(tables_hrefs)
     relevance = await url_manager.get_data_from_query()
 
+    out, err = capfd.readouterr()
+    if initial_tables_hrefs_length > 0:
+        assert 'All tables have been already downloaded' in out
+    else:
+        assert '1 new tables have been downloaded' in out
     assert relevance is True
     assert isinstance(url_manager.tables_hrefs, list)
 
@@ -32,7 +41,7 @@ async def test_download_tables(mock_get, mock_aiofiles_open, url_manager):
     url_manager.tables_hrefs = [
         "https://spimex.com/upload/reports/oil_xls/oil_xls_20250430162000.xls"
     ]
-    url_manager.existing_files = []
+    url_manager.existing_files = ['']
 
     mock_response = AsyncMock()
     mock_response.status = 200

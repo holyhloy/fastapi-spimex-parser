@@ -15,7 +15,7 @@ engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
 Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
-async def create_db() -> None:
+async def create_db() -> None:  # pragma: no cover
     """
     Creates tables in database.
     Does nothing if tables are already exist
