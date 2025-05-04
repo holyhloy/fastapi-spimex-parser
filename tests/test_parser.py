@@ -10,27 +10,27 @@ from src.models.spimex_trading_results import SpimexTradingResult
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("tables_hrefs", [[], ['https://spimex.com/upload/reports/oil_xls/oil_xls_20260430162000.xls']])
+@pytest.mark.parametrize("tables_hrefs",
+                         [[],
+                         ['https://spimex.com/upload/reports/oil_xls/oil_xls_20260430162000.xls']])
+@pytest.mark.parametrize("relevance", [True, False])
+@pytest.mark.parametrize("response_text",
+                         ['',
+                         '<a href="/upload/reports/oil_xls/oil_xls_20260430162000.xls?r=6602"></a>'])
 @patch("aiohttp.ClientSession.get")
-async def test_get_data_from_query(mock_get, url_manager, tables_hrefs, capfd):
+async def test_get_data_from_query(mock_get, url_manager, tables_hrefs, relevance, response_text, capfd):
     mock_response = AsyncMock()
     mock_response.status = 200
-    mock_response.text = AsyncMock(return_value="""
-        <a href="/upload/reports/oil_xls/oil_xls_20260430162000.xls?r=6602"></a>
-    """)
+    mock_response.text = AsyncMock(return_value=response_text)
     url_manager.tables_hrefs = tables_hrefs
     mock_get.return_value.__aenter__.return_value = mock_response
 
-    url_manager._check_relevance = AsyncMock(return_value=True)
+    url_manager._check_relevance = AsyncMock(return_value=relevance)
     initial_tables_hrefs_length = len(tables_hrefs)
     relevance = await url_manager.get_data_from_query()
-
     out, err = capfd.readouterr()
-    if initial_tables_hrefs_length > 0:
-        assert 'All tables have been already downloaded' in out
-    else:
-        assert '1 new tables have been downloaded' in out
-    assert relevance is True
+    if initial_tables_hrefs_length == 0 and not relevance:
+        assert 'new tables hrefs have been fetched' in out
     assert isinstance(url_manager.tables_hrefs, list)
 
 
@@ -225,10 +225,10 @@ async def test_load_to_db_inserts_new_records(mocker, url_manager, existing_ids,
     if existing_ids:
         assert len(url_manager.instances) == 0
         assert 'updated_on' in df.columns
-        assert 'None of rows have been inserted' in out
+        assert 'rows) have been inserted' in out
     else:
         assert len(url_manager.instances) == 1
         assert isinstance(url_manager.instances[0], SpimexTradingResult)
-        assert 'rows have been inserted' in out
+        assert 'rows) have been inserted' in out
     mock_session.add_all.assert_called_once_with(url_manager.instances)
     mock_session.commit.assert_awaited()

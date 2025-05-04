@@ -7,6 +7,7 @@ import xlrd
 
 import aiofiles
 import aiohttp
+from dns.dnssec import validate
 from sqlalchemy import select
 from sqlalchemy.sql.expression import func
 
@@ -33,48 +34,53 @@ class URLManager:
     async def get_data_from_query(self) -> None | bool:
         print('Getting data from URL...')
         async with aiohttp.ClientSession() as session:
-            downloaded_tables = 0
+            fetched_hrefs = 0
             all_downloaded = False
+            relevance = False
             while not all_downloaded:
+                if relevance:
+                    break
                 self.page_number += 1
                 async with session.get(self.url + f'?page=page-{self.page_number}') as response:
                     data = await response.text()
                 hrefs = re.findall(self.href_pattern, data)
 
-                newest_href = hrefs[0]
+                if hrefs:
+                    newest_href = hrefs[0]
 
-                newest_date = '{0}.{1}.{2}'.format(newest_href[-8:-6],
-                                                   newest_href[-10:-8],
-                                                   newest_href[-14:-10])
-                newest_date = datetime.datetime.strptime(newest_date, '%d.%m.%Y').date()
+                    newest_date = '{0}.{1}.{2}'.format(newest_href[-8:-6],
+                                                       newest_href[-10:-8],
+                                                       newest_href[-14:-10])
+                    newest_date = datetime.datetime.strptime(newest_date, '%d.%m.%Y').date()
 
-                relevance = await self._check_relevance(newest_date)
+                    relevance = await self._check_relevance(newest_date)
 
-                for href in hrefs:
-                    if f'https://spimex.com{href}.xls' not in self.tables_hrefs:
-                        href = f'https://spimex.com{href}.xls'
-                        self.tables_hrefs.append(href)
-                        downloaded_tables += 1
-                    else:
-                        all_downloaded = True
-                        if downloaded_tables > 0:
-                            print(f'{downloaded_tables} new tables have been downloaded')
-                            break
+                    for href in hrefs:
+                        if f'https://spimex.com{href}' not in self.tables_hrefs:
+                            href = f'https://spimex.com{href}'
+                            self.tables_hrefs.append(href)
+                            fetched_hrefs += 1
                         else:
-                            print('All tables have been already downloaded')
-                            break
+                            all_downloaded = True
+                            print(f'{fetched_hrefs} new tables hrefs have been fetched')
+                else:
+                    print(f'{fetched_hrefs} new tables hrefs have been fetched')
+                    break
         return relevance
 
     async def download_tables(self) -> None:
         async with aiohttp.ClientSession() as session:
             tasks = []
+            downloaded = 0
             if self.tables_hrefs:
                 print('Downloading tables...')
                 for href in self.tables_hrefs:
                     file_path = f'src/parser/tables/{href[-22:]}.xls'
                     if f'{href[-22:]}.xls' not in self.existing_files:
                         tasks.append(self._download_table_file(session, href, file_path))
+                        downloaded += 1
             await asyncio.gather(*tasks)
+            print(f'{downloaded} tables have been downloaded' if downloaded else 'All tables are already downloaded')
 
     async def _download_table_file(self, session, url, file_path) -> None:
         async with session.get(url) as response:
@@ -91,13 +97,17 @@ class URLManager:
 
     def convert_to_df(self) -> None:
         print('Converting tables to dataframes...')
+        converted = 0
         for table_file in os.listdir('src/parser/tables/'):
             file_path = f'src/parser/tables/{table_file}'
             df = pd.read_excel(file_path, usecols='B:F,O', engine='xlrd')
             self.dataframes[file_path] = df
+            converted += 1
+        print(f'{converted} tables have been converted to dataframes')
 
     def validate_tables(self) -> None:
         print('Validating tables...')
+        validated = 0
         search_tonn = 'Единица измерения: Метрическая тонна'
         table_borders_pattern = re.compile(r'\b(?=[A-Z-])([A-Z0-9-]+[A-Z]+[A-Z0-9-]*)\b')
         prev_df_length = 1
@@ -124,14 +134,19 @@ class URLManager:
             prev_df_length += len(new_df)
             new_df.set_index(['id'], inplace=True, drop=True)
             self.dataframes[file_path] = new_df
+            validated += 1
+        print(f'{validated} dataframes have been validated')
 
     def add_columns(self) -> None:
         print('Adding columns...')
+        extended_df = 0
+        extended_rows = 0
         for path, df in self.dataframes.items():
             date = '{0}.{1}.{2}'.format(path[-12:-10], path[-14:-12], path[-18:-14])
             date = datetime.datetime.strptime(date, '%d.%m.%Y').date()
             df['date'] = date
             df['created_on'] = datetime.date.today()
+            extended_df += 1
             for index, row in df.iterrows():
                 oil_id = row['exchange_product_id'][:4]
                 delivery_basis_id = row['exchange_product_id'][4:7]
@@ -140,9 +155,12 @@ class URLManager:
                 df.loc[index, 'oil_id'] = oil_id
                 df.loc[index, 'delivery_basis_id'] = delivery_basis_id
                 df.loc[index, 'delivery_type_id'] = delivery_type_id
+                extended_rows += 1
+        print(f'{extended_df} dataframes ({extended_rows} rows) have been extended')
 
     async def load_to_db(self) -> None:
         print('Loading to database...')
+        df_affected = 0
         rows_affected = 0
         tasks = []
 
@@ -150,6 +168,7 @@ class URLManager:
             existing_ids_query = await session.execute(select(SpimexTradingResult.id))
             existing_ids = set(row for row in existing_ids_query.scalars().all())
             for file_path, df in self.dataframes.items():
+                df_affected += 1
                 for index, row in df.iterrows():
                     if index in existing_ids:
                         df.loc[index, 'updated_on'] = datetime.date.today()
@@ -162,10 +181,7 @@ class URLManager:
             await asyncio.gather(*tasks)
             session.add_all(self.instances)
             await session.commit()
-            if rows_affected > 0:
-                print(f'{rows_affected} rows have been inserted')
-            else:
-                print('None of rows have been inserted')
+            print(f'{df_affected} dataframes ({rows_affected} rows) have been inserted')
 
     async def _convert_decorator(self, row) -> None:
         await self._convert_row_to_model(row)

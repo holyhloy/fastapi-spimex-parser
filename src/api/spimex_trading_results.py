@@ -67,7 +67,7 @@ async def get_last_trading_dates(session: SessionDep, amount: int) -> dict[str, 
         last_dates = await service.get_last_trading_dates(session, amount)
         return {'success': True, 'last_trading_dates': last_dates}
     except ValueError as e:
-        return HTTPException(status_code=400, detail=f'{e}')
+        raise HTTPException(status_code=400, detail=f'{e}')
 
 
 # список торгов за заданный период (фильтрация по oil_id, delivery_type_id,
@@ -107,7 +107,7 @@ async def get_dynamics(session: SessionDep,
                                               )
         return {'success': True, 'dynamics': dynamics}
     except ValueError as e:
-        return HTTPException(status_code=400, detail=f'{e}')
+        raise HTTPException(status_code=400, detail=f'{e}')
 
 
 # список последних торгов (фильтрация по oil_id, delivery_type_id, delivery_basis_id)
