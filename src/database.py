@@ -2,9 +2,9 @@ from typing import Any, AsyncGenerator
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession, AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase
-from src.config import DB_HOST, DB_NAME, DB_PASS, DB_PORT, DB_USER
+from src.config import settings
 
-DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = settings.DB_URL
 
 
 class BaseModel(AsyncAttrs, DeclarativeBase):
@@ -15,7 +15,7 @@ engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
 Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
-async def create_db() -> None:
+async def create_db() -> None:  # pragma: no cover
     """
     Creates tables in database.
     Does nothing if tables are already exist

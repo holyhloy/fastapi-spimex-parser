@@ -41,6 +41,9 @@ async def get_last_trading_dates(session: SessionDep, amount_of_days: int) -> Se
 
     :return: database response - Sequence[Row | RowMapping]
     """
+    if amount_of_days <= 0:
+        raise ValueError("Amount of days must be positive.")
+
     stmt = await session.execute(select(SpimexTradingResult.date)
                                  .group_by(SpimexTradingResult.date)
                                  .order_by(desc(SpimexTradingResult.date))
@@ -70,8 +73,8 @@ async def get_dynamics(session: SessionDep,
 
     :return: database response - Sequence[Row | RowMapping]
     """
-    if start_date >= end_date:
-        raise ValueError('Start date must be less than end date.')
+    if start_date > end_date:
+        raise ValueError('Start date must be less or equal to the end date.')
 
     conditions = [SpimexTradingResult.date.between(start_date, end_date)]
 

@@ -36,12 +36,15 @@ def cache_key_builder(
 
     :return: string cache key used for name a note in Redis
     """
-    del kwargs['kwargs']['session']
+    try:
+        del kwargs['kwargs']['session']
+    except KeyError:  # pragma: no cover
+        pass
     if request:
         parsed = urlparse(str(request.url))
         cache_key = f"{namespace}:{func.__module__}:{func.__name__}:{parsed.path}:{args}:{kwargs}"
     else:
-        cache_key = f"{namespace}:{func.__module__}:{func.__name__}:{args}:{kwargs}"
+        cache_key = f"{namespace}:{func.__module__}:{func.__name__}:{args}:{kwargs}"  # pragma: no cover
     return cache_key
 
 
@@ -50,7 +53,7 @@ def cache_key_builder(
             tags=['Операции с результатами торгов'],
             summary='Получить список дат последних торговый дней')
 @cache(key_builder=cache_key_builder)
-async def get_last_trading_dates(session: SessionDep, amount: int) -> dict[str, bool]:
+async def get_last_trading_dates(session: SessionDep, amount: int) -> dict[str, bool] | HTTPException:
     """
     Endpoint that provides GET-query to get a list of last trading days dates
 
@@ -60,8 +63,11 @@ async def get_last_trading_dates(session: SessionDep, amount: int) -> dict[str, 
     :return: a dictionary that will be serialized into a JSON,
     containing a bool value of success and dates in string format
     """
-    last_dates = await service.get_last_trading_dates(session, amount)
-    return {'success': True, 'last_trading_dates': last_dates}
+    try:
+        last_dates = await service.get_last_trading_dates(session, amount)
+        return {'success': True, 'last_trading_dates': last_dates}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f'{e}')
 
 
 # список торгов за заданный период (фильтрация по oil_id, delivery_type_id,
@@ -101,7 +107,7 @@ async def get_dynamics(session: SessionDep,
                                               )
         return {'success': True, 'dynamics': dynamics}
     except ValueError as e:
-        return HTTPException(status_code=400, detail=f'{e}')
+        raise HTTPException(status_code=400, detail=f'{e}')
 
 
 # список последних торгов (фильтрация по oil_id, delivery_type_id, delivery_basis_id)
