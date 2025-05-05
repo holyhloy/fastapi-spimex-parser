@@ -37,6 +37,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[Any, Any | None]:
     redis = aioredis.from_url(f"redis://{settings.REDIS_HOST}")
     FastAPICache.init(RedisBackend(redis), prefix="api:cache")
     scheduler.start()
+    await clear_cache()  # debug-thing, scheduler works only if app is always working
     await create_db()
     await parse_spimex(URLManager())
     yield

@@ -21,7 +21,6 @@ et_xmlfile==2.0.0
 fastapi==0.115.12
 fastapi-cache2==0.2.2
 fastapi-cli==0.0.7
-flake8==7.2.0
 frozenlist==1.5.0
 greenlet==3.1.1
 h11==0.14.0
@@ -36,7 +35,7 @@ markdown-it-py==3.0.0
 MarkupSafe==3.0.2
 mccabe==0.7.0
 mdurl==0.1.2
-mirakuru==2.6.0
+# mirakuru==2.6.0
 multidict==6.4.3
 numpy==2.2.4
 packaging==24.2
@@ -44,10 +43,10 @@ pandas==2.2.3
 pangres==4.2.1
 pendulum==3.1.0
 pluggy==1.5.0
-port-for==0.7.4
+# port-for==0.7.4
 propcache==0.3.1
-psutil==7.0.0
-psycopg==3.2.7
+# psutil==7.0.0
+# psycopg==3.2.7
 psycopg2==2.9.10
 pycodestyle==2.13.0
 pydantic==2.11.3
@@ -60,7 +59,6 @@ pytest-asyncio==0.26.0
 pytest-cov==6.1.1
 pytest-env==1.1.5
 pytest-mock==3.14.0
-pytest-postgresql==7.0.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.0
 python-multipart==0.0.20
